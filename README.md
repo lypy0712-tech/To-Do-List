@@ -14,7 +14,7 @@
 
 ```bash
 npm install
-npm start
+npm run dev
 ```
 
 Приложение будет доступно на `http://localhost:3000`.
