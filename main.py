@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -15,7 +15,7 @@ app.add_middleware(
 class TaskSchema(BaseModel):
     id: str
     title: str
-    completed: bool
+    completed: bool 
 
 
 class TaskCreateSchema(BaseModel):
