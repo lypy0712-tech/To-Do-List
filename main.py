@@ -1,56 +1,44 @@
 from contextlib import asynccontextmanager
 from uuid import uuid4
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine, select, delete
-from sqlalchemy.orm import Mapped, mapped_column, sessionmaker, Session, DeclarativeBase
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker, Mapped, mapped_column
 
-DATABASE_URL = "postgresql+psycopg://postgres:admin@192.168.0.1:15432/postgres"
+DATABASE_URL = "postgresql+psycopg://postgres:admin@81.17.83.242:15432/postgres"
 engine = create_engine(DATABASE_URL)
-Sessionlocal= sessionmaker[Session](bind=engine)
+Sessionlocal = sessionmaker[Session](bind=engine)
 
 def get_db():
-    db = Sessionlocal()
+    db= Sessionlocal()
     try:
         yield db
     finally:
         db.close()
 
+
 class Base(DeclarativeBase):
-    id: Mapped[str]= mapped_column(primary_key=True, default=lambda: str(uuid4()))
+    id: Mapped[str]= mapped_column(primary_key=True, default= lambda: str(uuid4()))
 
 
 class TaskORM(Base):
-    __tablename__= "tasks"
+    __tablename__ = "tasks"
 
     title: Mapped[str]
     completed: Mapped[bool]= mapped_column(default=False)
 
 
-@asynccontextmanager
-async def lifespan(app:FastAPI):
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-app = FastAPI(
-    lifespan=lifespan,
-    title= "To-Do-List"
-    )
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_methods = ["*"]
-)
-
 class TaskSchema(BaseModel):
     id: str
     title: str
-    completed: bool 
+    completed: bool
+
+    model_config = {
+        "from_attributes": True
+    }
 
     model_config={
         "from_attributes":True
@@ -66,22 +54,26 @@ class TaskCreateSchema(BaseModel):
 
 
 class TaskUpdateSchema(BaseModel):
-    title: str | None= None
-    completed: bool | None= None
-
-    model_config={
-        "from_attributes":True
+    title: str | None = None
+    completed: bool | None = None
+    
+    model_config = {
+        "from_attributes": True
     }
 
-def task_orm_to_model(task_orm: TaskORM):
-    return TaskSchema(id= task_orm.id, title= task_orm.title, completed=task_orm.completed)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
 
 @app.get("/tasks")
 def read_tasks(db: Session= Depends(get_db), response_model= TaskSchema) -> list[TaskSchema]:
     task_from_db= db.scalars(select(TaskORM)).all()
     return task_from_db
 
+def task_orm_to_model(task_orm:TaskORM) -> TaskSchema:
+    return TaskSchema(id= task_orm.id, title= task_orm.title, completed= task_orm.completed)
 
 @app.post("/tasks", status_code= status.HTTP_200_OK)
 def create_task(payload: TaskCreateSchema, db: Session= Depends(get_db)) -> TaskSchema:
@@ -90,6 +82,21 @@ def create_task(payload: TaskCreateSchema, db: Session= Depends(get_db)) -> Task
     db.commit()
     return new_task
 
+app = FastAPI(
+    title= "My To-Do-List",
+    lifespan=lifespan
+)
+
+origins = [
+    "http://127.0.0.1:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins= ["http://localhost:3000"],
+    allow_methods= ["*"],
+    allow_headers=['*']
+)
 
 @app.patch("/tasks/{task_id}", status_code= status.HTTP_200_OK)
 def create_task(task_id: str, payload: TaskUpdateSchema, db: Session= Depends(get_db), response_model= TaskSchema)-> TaskSchema:
