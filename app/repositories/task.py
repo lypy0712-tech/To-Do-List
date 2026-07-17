@@ -16,7 +16,7 @@ class TaskRepository:
         return self.db.get(TaskORM, task_id)
     
     def create(self, title: str)-> TaskORM:
-        new_task = TaskSchema(title=title, completed=False)
+        new_task = TaskORM(title=title, completed=False)
         self.db.add(new_task)
         return new_task
 

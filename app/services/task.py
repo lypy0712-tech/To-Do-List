@@ -16,7 +16,7 @@ class TaskServices:
         return [TaskSchema.model_validate(task) for task in tasks_orm]
 
     def create_task(self, task_create: TaskCreateSchema) -> TaskSchema:
-         task_orm = self.task_repository.create(task_create)
+         task_orm = self.task_repository.create(title=task_create.title)
          self.db.commit()
          return TaskSchema.model_validate(task_orm)
     
