@@ -198,6 +198,7 @@ function App() {
   };
 
   const handleCategoryDelete = async (id) => {
+    console.log("Пытаюсь удалить категорию. Переданный ID:", id, "Тип:", typeof id);
     try {
       await axios.delete(`${API_BASE_URL}/categories/${id}`);
       if (editingCategoryId === id) {
